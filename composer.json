@@ -1,0 +1,28 @@
+{
+    "name": "noouh/auto-model-fillable",
+    "description": "A Laravel package to auto-generate Fillable to models from table definitions.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Noouh For Integrated Solutions",
+            "email": "info@noouh.com"
+        }
+    ],
+    "require": {
+        "php": "^7.3|^8.0",
+        "illuminate/support": "^8.0|^9.0|^10.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Noouh\\AutoModelFillable\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Noouh\\AutoModelFillable\\Providers\\NoouhAutoModelFillableServiceProvider"
+            ]
+        }
+    }
+}
