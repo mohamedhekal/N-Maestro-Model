@@ -1,6 +1,6 @@
 # Noouh Auto Model - Fillable V2
 
-A Laravel package to auto-generate Fillable to models from table definitions.
+A Laravel package to auto-generate fillable properties for models based on table definitions from a JSON file.
 
 ## Installation
 
@@ -12,15 +12,59 @@ composer require noouh/auto-model-fillable
 
 ## Usage
 
-After installing the package, you can use the following command to generate fillable properties for all models:
+To generate fillable properties for all models based on table definitions from a JSON file, use the following command:
 
 ```bash
-php artisan noouh:generate-fillable
+php artisan noouh:generate-fillable path/to/your/json/file.json
 ```
 
-This command will scan your database schema and add the corresponding fillable properties to your model files.
+### Example JSON File
 
-## About the Company
+The JSON file should contain the table definitions with the columns. Here is an example structure:
+
+```json
+[
+  {
+    "table": "users",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int",
+        "primaryKey": true,
+        "autoIncrement": true
+      },
+      { "name": "name", "type": "string" },
+      { "name": "email", "type": "string" }
+    ]
+  },
+  {
+    "table": "posts",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int",
+        "primaryKey": true,
+        "autoIncrement": true
+      },
+      { "name": "title", "type": "string" },
+      { "name": "content", "type": "text" },
+      { "name": "user_id", "type": "unsignedBigInteger" }
+    ],
+    "relationships": [
+      { "type": "belongsTo", "relatedTable": "users", "foreignKey": "user_id" }
+    ]
+  }
+]
+```
+
+### How It Works
+
+1. **Loop Through Model Files:** The script loops through all model files in the `app/Models` directory.
+2. **Extract Table Name:** It extracts the table name from each model file using the `$table` property.
+3. **Get Columns from JSON:** It retrieves the columns for the corresponding table from the provided JSON file.
+4. **Update Fillable Properties:** It updates the model file with the fillable properties if the table and columns are found.
+
+### About the Company
 
 Noouh For Integrated Solutions is dedicated to providing innovative software solutions. We specialize in developing high-quality applications tailored to meet the specific needs of our clients.
 
