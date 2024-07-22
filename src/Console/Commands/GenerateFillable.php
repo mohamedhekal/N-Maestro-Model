@@ -3,13 +3,13 @@
 namespace Noouh\AutoModelFillable\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 class GenerateFillable extends Command
 {
-    protected $signature = 'noouh:generate-fillable';
-    protected $description = 'Generate fillable properties for models based on table definitions';
+    protected $signature = 'noouh:generate-fillable {jsonFile}';
+    protected $description = 'Generate fillable properties for models based on table definitions from a JSON file';
 
     public function __construct()
     {
@@ -18,33 +18,68 @@ class GenerateFillable extends Command
 
     public function handle()
     {
-        $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
+        $jsonFile = $this->argument('jsonFile');
 
-        foreach ($tables as $table) {
-            $columns = DB::getSchemaBuilder()->getColumnListing($table);
-            $modelName = ucfirst(str_singular($table));
-            $modelPath = app_path("Models/{$modelName}.php");
+        if (!File::exists($jsonFile)) {
+            $this->error("JSON file not found: {$jsonFile}");
+            return;
+        }
 
-            if (File::exists($modelPath)) {
-                $this->addFillableToModel($modelPath, $columns);
-                $this->info("Fillable properties added to {$modelName} model.");
+        $jsonContent = File::get($jsonFile);
+        $tables = json_decode($jsonContent, true);
+
+        $modelPath = app_path("Models");
+        $modelFiles = File::allFiles($modelPath);
+
+        foreach ($modelFiles as $modelFile) {
+            $modelContent = File::get($modelFile);
+            $tableName = $this->extractTableName($modelContent);
+
+            if ($tableName) {
+                $columns = $this->getColumnsFromJson($tables, $tableName);
+                if ($columns) {
+                    $this->addFillableToModel($modelFile->getPathname(), $columns);
+                    $this->info("Fillable properties added to " . $modelFile->getFilename() . " model.");
+                } else {
+                    $this->warn("Table {$tableName} not found in JSON file.");
+                }
             } else {
-                $this->warn("Model {$modelName} does not exist.");
+                $this->warn("Table name not defined in " . $modelFile->getFilename() . " model.");
             }
         }
+    }
+
+    protected function extractTableName($modelContent)
+    {
+        if (preg_match('/protected\s+\$table\s+=\s+\'([^\']+)\'\s*;/', $modelContent, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
+    }
+
+    protected function getColumnsFromJson($tables, $tableName)
+    {
+        foreach ($tables as $table) {
+            if ($table['table'] === $tableName) {
+                return array_column($table['columns'], 'name');
+            }
+        }
+
+        return null;
     }
 
     protected function addFillableToModel($modelPath, $columns)
     {
         $fileContent = File::get($modelPath);
-        $fillableArray = "protected $fillable = [\n";
+        $fillableArray = "protected \$fillable = [\n";
         foreach ($columns as $column) {
             $fillableArray .= "        '{$column}',\n";
         }
         $fillableArray .= "    ];";
 
-        if (preg_match('/protected $fillable\s*=\s*\[.*?\];/s', $fileContent)) {
-            $fileContent = preg_replace('/protected $fillable\s*=\s*\[.*?\];/s', $fillableArray, $fileContent);
+        if (preg_match('/protected \$fillable\s*=\s*\[.*?\];/s', $fileContent)) {
+            $fileContent = preg_replace('/protected \$fillable\s*=\s*\[.*?\];/s', $fillableArray, $fileContent);
         } else {
             $fileContent = preg_replace('/class\s+\w+\s+extends\s+Model\s*\{/', "$0\n    {$fillableArray}\n", $fileContent);
         }
